@@ -1,0 +1,113 @@
+---
+# Deploy localhost
+- name: run the playbook tasks on the localhost
+  hosts: 127.0.0.1
+  connection: local
+  remote_user: root
+ 
+  tasks:
+
+# install pip y docker
+     - name: Install pip
+       apt: 
+            name: python-pip 
+            state: present
+            update_cache: yes
+
+     - name: install docker-py package
+       pip: 
+            name: docker-py
+            state: present
+
+# install docker
+     - name: Add Docker GPG key
+       apt_key: url=https://download.docker.com/linux/ubuntu/gpg
+
+     - name: Add Docker APT repository
+       apt_repository:
+         repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu {{ansible_distribution_release}} stable
+
+     - name: Install list of packages
+       apt:
+         name: "{{ item }}"
+         state: present
+         update_cache: yes
+       with_items:
+         - apt-transport-https
+         - ca-certificates
+         - curl
+         - software-properties-common
+         - docker-ce
+
+# create images
+     - name: Build Docker image from Dockerfile
+       docker_image:
+          name: ssh
+          dockerfile: dfssh
+          path: /home/roque/ansible-lamp-myowncloud-master/dockerfiles/
+          state: present
+
+     - name: Build Docker image from Dockerfile
+       docker_image:
+          name: "{{ item.name }}"
+          dockerfile: "{{ item.dockerfile }}"
+          path: /home/roque/ansible-lamp-myowncloud-master/dockerfiles/
+          state: present
+       with_items:
+          - { name: 'ssh', dockerfile: 'dfssh' }
+#          - { name: 'mysql', dockerfile: 'dfmysql' }  
+#          - { name: 'owncloud', dockerfile: 'dfowncloud' }
+ 
+# delete network
+     - name: Be sure that network is deleted
+       docker_network:
+         name: rapspinet
+         state: absent
+         force: yes
+# create network
+     - name: Create a network with custom IPAM config
+       docker_network:
+         name: rapspinet
+         ipam_options:
+           subnet: 192.168.34.0/24
+           gateway: 192.168.34.1
+
+# run containers
+     - name: Running the containers
+       docker_container:
+           name: "{{ item.name }}"
+           image: "{{ item.image }}"
+           networks:
+              - name: "{{ item.Network_name }}"
+                ipv4_address: "{{ item.address }}" 
+           exposed_ports: "{{ item.ports}}"
+           state: started
+       with_items:
+          - { name: 'blcr', image: 'ssh', Network_name: 'rapspinet', address: '192.168.34.11', ports: '22' }
+          - { name: 'wsrv1', image: 'ssh', Network_name: 'rapspinet', address: '192.168.34.12', ports: '80' }
+          - { name: 'wsrv2', image: 'ssh', Network_name: 'rapspinet', address: '192.168.34.13', ports: '80' }
+          - { name: 'dbsrv', image: 'ssh', Network_name: 'rapspinet', address: '192.168.34.14', ports: '22' }
+
+# Configures containers as known hosts for ssh
+     - name: For each hosts genenerate and add ssh knownhost
+       command: "ssh-keygen -f /root/.ssh/known_hosts -R {{ item }}"
+       with_items: "{{ groups['all'] }}"
+ 
+
+# Deploy dockers
+- name: run the playbook tasks 
+  hosts: all
+  remote_user: root
+ 
+  tasks:
+
+  - name: import loadbalancers
+    import_playbook: loadbalancers.yml
+
+  - name: import webservers
+    import_playbook: webservers.yml
+
+  - name: import dbservers
+    import_playbook: dbservers.yml
+
+

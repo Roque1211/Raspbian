@@ -1,0 +1,19 @@
+---
+
+- name: Install unzip package
+  apt: name=unzip state=installed
+
+- name: Check if owncloud has been previously downloaded
+  stat: path="{{ ow_download_path }}"
+  register: ow_zipped
+
+- name: Download owncloud
+  get_url: url="{{ ow_url }}" dest="{{ ow_download_path }}"
+  when: ow_zipped.stat.exists == False
+
+- name: Unzip owncloud
+  unarchive: src="{{ ow_download_path }}" dest="{{ ow_webserver_path }}" copy=no
+  # copy=no para que busque el archivo en la máquina remota y no en el controller
+
+#- name: Copy wp-config.php
+#  template: src=wp-config.php.j2 dest="{{ ow_webserver_path }}/wordpress/wp-config.php"

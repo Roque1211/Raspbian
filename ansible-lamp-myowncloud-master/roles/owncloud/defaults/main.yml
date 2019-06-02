@@ -1,0 +1,6 @@
+---
+
+ow_version: 10.0.10
+ow_url: "https://download.owncloud.org/community/owncloud-{{ ow_version }}.zip"
+ow_download_path: "/tmp/owncloud-{{ ow_version }}.zip"
+ow_webserver_path: "{{ webserver_root }}"

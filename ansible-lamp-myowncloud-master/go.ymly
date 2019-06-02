@@ -1,0 +1,125 @@
+---
+# Deploy localhost
+- name: run the playbook tasks on the localhost
+  hosts: 127.0.0.1
+  connection: local
+  remote_user: root
+ 
+  tasks:
+
+# install pip y docker
+     - name: Install pip
+       apt: 
+            name: python-pip 
+            state: present
+            apt-cache: yes
+
+     - name: install docker-py package
+       pip: 
+            name: docker-py
+            state: present
+            apt-cache: yes
+
+     - name: install docker
+       apt:
+            name: docker
+            state: present
+            apt-cache: yes
+
+
+
+# create images
+     - name: Build Docker image from Dockerfile
+       docker_image:
+          name: ssh
+          dockerfile: dfssh
+          path: /home/roque/ansible-lamp-myowncloud-master/dockerfiles/
+          state: present
+
+     - name: Build Docker image from Dockerfile
+       docker_image:
+          name: "{{ item.name }}"
+          dockerfile: "{{ item.dockerfile }}"
+          path: /home/roque/ansible-lamp-myowncloud-master/dockerfiles/
+          state: present
+       with_items:
+          - { name: 'ssh', dockerfile: 'dfssh' }
+          - { name: 'owncloud', dockerfile: 'dfowncloud' }
+          - { name: 'mysql', dockerfile: 'dfmysql' }  
+ 
+# delete network
+     - name: Be sure that network is deleted
+       docker_network:
+         name: rapspinet
+         state: absent
+         force: yes
+# create network
+     - name: Create a network with custom IPAM config
+       docker_network:
+         name: rapspinet
+         ipam_options:
+           subnet: 192.168.34.0/24
+           gateway: 192.168.34.1
+
+# run containers
+     - name: Running the container blcr
+       docker_container:
+           name: blcr
+           image: ssh
+           networks:
+              - name: rapspinet
+                ipv4_address: "192.168.34.11" 
+#           volumes: /media/pi/Disco/pi/blcr:/tmp
+           state: started
+           
+     - name: Running the container wsrv1
+       docker_container:
+           name: wsrv1
+           image: ssh
+           networks:
+              - name: rapspinet
+                ipv4_address: "192.168.34.12"
+           exposed_ports:
+              - 80
+ #          volumes: /media/pi/Disco/pi/wsrv1:/tmp
+           state: started 
+
+
+     - name: Running the container wsrv2
+       docker_container:
+          name: wsrv2
+          image: ssh
+          networks:
+              - name: rapspinet
+                ipv4_address: "192.168.34.13"
+          exposed_ports:
+              - 80
+#          volumes: /media/pi/Disco/pi/wsrv2:/tmp
+          state: started
+
+     - name: Running the container dbsrv
+       docker_container:
+           name: dbsrv
+           image: ssh
+           networks:
+              - name: rapspinet
+                ipv4_address: "192.168.34.14"
+#           volumes: /media/pi/Disco/pi/dbsrv:/tmp
+           state: started
+
+# Configures containers as known hosts for ssh
+     - name: For each hosts genenerate and add ssh knownhost
+       command: "ssh-keygen -f /root/.ssh/known_hosts -R {{ item }}"
+       with_items: "{{ groups['all'] }}"
+ 
+# Deploy dockers
+- name: deploy loadbalancers
+  include: loadbalancers.yml
+
+- name: deploy webservers
+  include: webservers.yml
+
+- name: deploy dbservers
+  include: dbservers.yml
+
+

@@ -1,0 +1,5 @@
+--- 
+- name: load balancers playbook
+  hosts: loadbalancers
+  roles:
+    - role: haproxy

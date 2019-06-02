@@ -1,0 +1,10 @@
+[loadbalancers]
+loadbalancer ansible_host=192.168.34.11 ansible_user=root
+
+[webservers]
+webserver-one ansible_host=192.168.34.12 ansible_user=root
+webserver-two ansible_host=192.168.34.13 ansible_user=root
+
+[dbservers]
+dbserver ansible_host=192.168.34.14 ansible_user=root
+

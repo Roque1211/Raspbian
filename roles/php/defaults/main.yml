@@ -1,0 +1,35 @@
+---
+# defaults file for roles/php-fpm
+
+php_directory: '/etc/php/7.0'
+
+php_logs_directory: '/var/log/php7-fpm'
+
+php_fpm_packages:
+  - php7.2
+  - libapache2-mod-php7.2
+  - php7.2-mysql
+  - php7.2-zip
+  - php7.2-dom
+  - php7.2-xmlwriter
+  - php7.2-xmlreader
+  - php7.2-intl
+#  - php7.2-libxml
+  - php7.2-mbstring
+#  - simplexml
+  - php7.2-curl
+  - php7.2-gd
+#  - php-pear
+#  - php-imagick
+#  - php7.2-imap
+#  - php7.2-mcrypt
+#  - php-memcache
+#  - php7.2-pspell
+#  - php7.2-recode
+#  - php7.2-sqlite3
+#  - php7.2-tidy
+  - php7.2-xmlrpc
+#  - php7.2-xsl
+#  - php-gettext
+#  - php7.2-opcache
+#  - php-apcu
