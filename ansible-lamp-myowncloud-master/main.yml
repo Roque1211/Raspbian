@@ -1,15 +1,16 @@
 ---
 # Deploy localhost
 - name: run the playbook tasks on the localhost
+  hosts: 127.0.0.1
   vars:
     - mount_path: "/media/disco"
     - mount_src: "/dev/sdb1"
-  hosts: 127.0.0.1
-  #connection: local
+    - dockerfile_dir: "{{dockerfile_path}}/"
+    - master_path: "/home/roque/ansible-lamp-owncloud-master/"
   remote_user: root
  
   tasks:
-    #install NTFS utils
+#install NTFS utils
   - name: Install ntfs utils
     apt: 
       name: ntfs-3g 
@@ -28,18 +29,18 @@
     apt: 
       name: xrdp 
       state: present
-      update_cache: yes
-# install pip 
+update_cache: yes
+# install pip y docker
   - name: Install pip
     apt: 
-      name: python-pip 
-      state: present
-      update_cache: yes
+        name: python-pip 
+        state: present
+        update_cache: yes
 
   - name: install docker-py package
     pip: 
-      name: docker-py
-      state: present
+        name: docker-py
+        state: present
 
 # install docker
   - name: Add Docker GPG key
@@ -67,30 +68,29 @@
     docker_image:
       name: ssh
       dockerfile: dfssh
-      path: /home/roque/ansible-lamp-myowncloud-master/dockerfiles/
+      path: "{{master_path}}/{{dockerfile_path}}/"
       state: present
 
   - name: Build Docker image from Dockerfile
     docker_image:
       name: "{{ item.name }}"
       dockerfile: "{{ item.dockerfile }}"
-      path: /home/roque/ansible-lamp-myowncloud-master/dockerfiles/
+      path: "{{master_path}}{{dockerfile_path}}"
       state: present
     with_items:
       - { name: 'ssh', dockerfile: 'dfssh' }
-#          - { name: 'mysql', dockerfile: 'dfmysql' }  
-#          - { name: 'owncloud', dockerfile: 'dfowncloud' }
+
 
 # delete network
   - name: Be sure that network is deleted
     docker_network:
-      name: rapspinet
+      name: raspinet
       state: absent
       force: yes
 # create network
   - name: Create a network with custom IPAM config
     docker_network:
-      name: rapspinet
+      name: raspinet
       ipam_options:
         subnet: 192.168.34.0/24
         gateway: 192.168.34.1
@@ -106,24 +106,24 @@
         exposed_ports: "{{ item.ports}}"
         state: started
     with_items:
-      - { name: 'blcr', image: 'ssh', Network_name: 'rapspinet', address: '192.168.34.11', ports: '22' }
-      - { name: 'wsrv1', image: 'ssh', Network_name: 'rapspinet', address: '192.168.34.12', ports: '80' }
-      - { name: 'wsrv2', image: 'ssh', Network_name: 'rapspinet', address: '192.168.34.13', ports: '80' }
-      - { name: 'dbsrv', image: 'ssh', Network_name: 'rapspinet', address: '192.168.34.14', ports: '22' }
+      - { name: 'blcr', image: 'ssh', Network_name: 'raspinet', address: '192.168.34.11', ports: '22' }
+      - { name: 'wsrv1', image: 'ssh', Network_name: 'raspinet', address: '192.168.34.12', ports: '80' }
+      - { name: 'wsrv2', image: 'ssh', Network_name: 'raspinet', address: '192.168.34.13', ports: '80' }
+      - { name: 'dbsrv', image: 'ssh', Network_name: 'raspinet', address: '192.168.34.14', ports: '22' }
 # Configures containers as known hosts for ssh
   - name: For each hosts genenerate and add ssh knownhost
     shell: "ssh-keygen -f /root/.ssh/known_hosts -R {{ item }}"
     with_items: "{{ groups['all']}}" 
 
 # Deploy loadbalancers
-- name: excecute include loadbalancers
+- name: excecute role loadbalancers
   hosts: loadbalancers
   remote_user: root
   roles:
     - role: haproxy
 
 # Deploy webservers
-- name: Web servers playbook
+- name: execute role Webservers 
   hosts: webservers
   roles:
     - role: apache
@@ -131,7 +131,7 @@
     - role: owncloud
 
 # Deploy dbservers
-- name: Database servers playbook
+- name: execute role Database servers 
   hosts: dbservers
   roles:
     - role: mysql
