@@ -5,9 +5,9 @@
   vars:
     - mount_path: "/media/disco"
     - mount_src: "/dev/sdb1"
-    - dockerfile_dir: "{{dockerfile_path}}/"
+    - dockerfile_path: "dockerfiles/"
     - master_path: "/home/roque/ansible-lamp-owncloud-master/"
-  remote_user: root
+    - remote_user: root
  
   tasks:
 #install NTFS utils
@@ -68,14 +68,14 @@ update_cache: yes
     docker_image:
       name: ssh
       dockerfile: dfssh
-      path: "{{master_path}}/{{dockerfile_path}}/"
+      path: "{{ master_path }}/{{ dockerfile_path }}/"
       state: present
 
   - name: Build Docker image from Dockerfile
     docker_image:
       name: "{{ item.name }}"
       dockerfile: "{{ item.dockerfile }}"
-      path: "{{master_path}}{{dockerfile_path}}"
+      path: "{{ master_path }}{{ dockerfile_path }}"
       state: present
     with_items:
       - { name: 'ssh', dockerfile: 'dfssh' }
